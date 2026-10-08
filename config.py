@@ -30,3 +30,6 @@ def custom_problem_handler(error):
 vuln_app.add_error_handler(ProblemException, custom_problem_handler)
 
 vuln_app.add_api('openapi3.yml')
+
+from rate_limit import install_rate_limiting
+install_rate_limiting(vuln_app.app)
