@@ -74,14 +74,14 @@ def test_login_has_same_failure_for_unknown_user_and_bad_password():
     assert b'auth_token' in successful.data
 
 
-def test_registration_rejects_admin_and_does_not_reveal_existing_accounts():
+def test_registration_ignores_admin_and_does_not_reveal_existing_accounts():
     session = FakeSession()
     FakeUser.accounts = {'existing': FakeUser('existing', 'secret', 'existing@example.com')}
     FakeUser.query = FakeQuery(FakeUser.accounts)
     with patch.object(users, 'User', FakeUser), patch.object(users, 'db', SimpleNamespace(session=session)):
         with vuln_app.app.test_request_context('/users/v1/register', method='POST',
-                                               json={'username': 'new', 'password': 'secret',
-                                                     'email': 'new@example.com', 'admin': True}):
+                                               json={'username': 'privileged', 'password': 'secret',
+                                                     'email': 'privileged@example.com', 'admin': True}):
             admin_attempt = users.register_user()
         with vuln_app.app.test_request_context('/users/v1/register', method='POST',
                                                json={'username': 'new', 'password': 'secret',
@@ -91,11 +91,11 @@ def test_registration_rejects_admin_and_does_not_reveal_existing_accounts():
                                                json={'username': 'existing', 'password': 'secret',
                                                      'email': 'existing@example.com'}):
             existing_account = users.register_user()
-    assert admin_attempt.status_code == 400
-    assert len(session.added) == 1
-    assert session.added[0].admin is False
+    assert admin_attempt.status_code == 200
+    assert len(session.added) == 2
+    assert all(not account.admin for account in session.added)
     assert new_account.status_code == existing_account.status_code == 200
-    assert new_account.data == existing_account.data
+    assert admin_attempt.data == new_account.data == existing_account.data
 
 
 def test_password_change_requires_matching_token_subject():

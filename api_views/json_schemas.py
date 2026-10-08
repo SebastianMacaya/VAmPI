@@ -5,8 +5,7 @@ register_user_schema = {
         "password": {"type": "string", "minLength": 1, "maxLength": 128},
         "email": {"type": "string", "minLength": 1, "maxLength": 128}
     },
-    "required": ["username", "password", "email"],
-    "additionalProperties": False
+    "required": ["username", "password", "email"]
 }
 
 login_user_schema = {

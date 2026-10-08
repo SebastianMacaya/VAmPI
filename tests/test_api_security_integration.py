@@ -40,7 +40,9 @@ class ApiSecurityIntegrationTests(unittest.TestCase):
 
     def test_registration_login_and_user_lookup(self):
         self.assertEqual(self.register('alice').status_code, 200)
-        self.assertEqual(self.register('mallory', admin=True).status_code, 400)
+        self.assertEqual(self.register('mallory', admin=True).status_code, 200)
+        mallory = self.client.get('/me', headers=self.authorization(self.token('mallory')))
+        self.assertFalse(mallory.get_json()['data']['admin'])
 
         wrong_password = self.login('alice', 'wrong')
         unknown_user = self.login('unknown', 'wrong')

@@ -90,10 +90,10 @@ paths:
       tags:
         - users
       summary: Register new user
-      description: Register a standard user account. The response does not reveal whether the username already exists.
+      description: Register a standard user account. Extra fields such as admin are ignored, and the response does not reveal whether the username already exists.
       operationId: api_views.users.register_user
       requestBody:
-        description: Public account fields; privilege flags are not accepted.
+        description: Public account fields; privilege flags do not affect the created account.
         content:
           application/json:
             schema:
@@ -115,7 +115,6 @@ paths:
                   maxLength: 128
                   example: 'user@tempmail.com'
               required: [username, password, email]
-              additionalProperties: false
         required: true
       responses:
         '200':
@@ -133,7 +132,7 @@ paths:
                     enum: ['success']
                     example: 'success'
         '400':
-          description: Invalid request, including privileged or unknown fields
+          description: Invalid request body
           content: {}
   /users/v1/login:
     post:
