@@ -24,6 +24,10 @@ def _test_app(clock, *, legacy_failure_200=False, **limits):
     def health():
         return jsonify(status='ok')
 
+    @app.get('/users/v1/<username>')
+    def lookup(username):
+        return jsonify(username=username)
+
     @app.post('/users/v1/login')
     def login():
         if request.get_json().get('password') == 'correct':
@@ -35,6 +39,13 @@ def _test_app(clock, *, legacy_failure_200=False, **limits):
 
 
 class RateLimitTests(unittest.TestCase):
+    def test_username_lookup_has_a_larger_but_finite_allowance(self):
+        client, _ = _test_app(_Clock(), route_limit=2, lookup_route_limit=5)
+        for number in range(5):
+            self.assertEqual(client.get('/users/v1/user' + str(number)).status_code, 200)
+        self.assertEqual(client.get('/users/v1/another').status_code, 429)
+        self.assertEqual(client.get('/health').status_code, 200)
+
     def test_route_limit_groups_object_ids_and_ignores_forwarded_headers(self):
         client, _ = _test_app(_Clock(), route_limit=3)
         for number in range(3):

@@ -77,7 +77,8 @@ class _SlidingWindows:
             return 0
 
 
-def install_rate_limiting(flask_app, *, route_limit=60, account_failure_limit=6,
+def install_rate_limiting(flask_app, *, route_limit=60, lookup_route_limit=600,
+                          account_failure_limit=6,
                           ip_failure_limit=25, window_seconds=60, max_buckets=4096,
                           clock=time.monotonic):
     """Limit all routes per client and repeated failed login attempts.
@@ -90,7 +91,8 @@ def install_rate_limiting(flask_app, *, route_limit=60, account_failure_limit=6,
         return existing
 
     windows = _SlidingWindows(window_seconds, max_buckets,
-                              max(route_limit, account_failure_limit, ip_failure_limit), clock)
+                              max(route_limit, lookup_route_limit,
+                                  account_failure_limit, ip_failure_limit), clock)
 
     def client_ip():
         return request.remote_addr or 'unknown'
@@ -126,7 +128,10 @@ def install_rate_limiting(flask_app, *, route_limit=60, account_failure_limit=6,
         # The rule groups different object IDs under one route bucket.
         route = request.url_rule.rule if request.url_rule is not None else '<unmatched>'
         route_key = ('route', ip, request.method, route)
-        wait = windows.allow_and_record(route_key, route_limit)
+        # Username lookups are queried in batches by API clients. Keep their
+        # route bounded without exhausting the smaller write-route allowance.
+        limit = lookup_route_limit if request.method == 'GET' and route == '/users/v1/<username>' else route_limit
+        wait = windows.allow_and_record(route_key, limit)
         if wait:
             return too_many_requests(wait)
 

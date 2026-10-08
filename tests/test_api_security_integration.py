@@ -84,6 +84,13 @@ class ApiSecurityIntegrationTests(unittest.TestCase):
         valid = self.client.put('/users/v1/alice/email', json={'email': 'alice.new+tag@example.com'}, headers=alice)
         self.assertEqual(valid.status_code, 204)
 
+    def test_many_distinct_username_lookups_remain_safe_and_available(self):
+        self.register('alice')
+        for number in range(80):
+            lookup = self.client.get(f'/users/v1/%27%20OR%201%3D1--{number}')
+            self.assertEqual(lookup.status_code, 404)
+        self.assertEqual(self.client.get('/users/v1/alice').status_code, 200)
+
 
 if __name__ == '__main__':
     unittest.main()
